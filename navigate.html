@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navigate - National Pin</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #2563eb;
+            --primary-dark: #1e40af;
+            --bg-light: #f8fafc;
+            --text-dark: #0f172a;
+            --text-gray: #64748b;
+            --glass: rgba(255, 255, 255, 0.9);
+            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        header {
+            background: white;
+            padding: 0.8rem 2rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--text-dark);
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-gray);
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary-blue);
+        }
+
+        #main-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+        }
+
+        #map {
+            flex: 1;
+            height: 100%;
+        }
+
+        #search-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 400px;
+            max-width: calc(100% - 40px);
+            background: var(--glass);
+            backdrop-filter: blur(15px);
+            padding: 1.5rem;
+            border-radius: 24px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .input-group label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--primary-blue);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 15px;
+            font-size: 1.1rem;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 14px 14px 45px;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        input:focus {
+            background: white;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-dark));
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-start:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn-start:active {
+            transform: translateY(0);
+        }
+
+        #directions-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 350px;
+            max-height: calc(100% - 40px);
+            background: var(--glass);
+            backdrop-filter: blur(15px);
+            padding: 1.5rem;
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+            z-index: 1000;
+            display: none;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .route-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .route-summary {
+            display: flex;
+            gap: 20px;
+        }
+
+        .summary-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .summary-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .summary-label {
+            font-size: 0.7rem;
+            color: var(--text-gray);
+            font-weight: 600;
+        }
+
+        .instruction-item {
+            padding: 12px;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .instruction-item:hover {
+            background: rgba(37, 99, 235, 0.05);
+        }
+
+        .instr-icon {
+            width: 32px;
+            height: 32px;
+            background: #eff6ff;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-blue);
+            font-weight: 700;
+        }
+
+        .instr-text {
+            flex: 1;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+        }
+
+        .instr-dist {
+            font-size: 0.75rem;
+            color: var(--text-gray);
+            font-weight: 600;
+        }
+
+        .nav-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        #stop-btn {
+            background: #ef4444;
+            flex: 1;
+        }
+
+        #stop-btn:hover {
+            box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.4);
+        }
+
+        .swap-btn {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: white;
+            border: 1px solid #e2e8f0;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Leaflet Overrides */
+        .leaflet-routing-container {
+            display: none;
+        }
+
+        .pulse-marker {
+            width: 12px;
+            height: 12px;
+            background: var(--primary-blue);
+            border-radius: 50%;
+            box-shadow: 0 0 0 rgba(37, 99, 235, 0.4);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 15px rgba(37, 99, 235, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+            }
+        }
+
+        /* Loading Overlay */
+        #loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            backdrop-filter: blur(5px);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 768px) {
+            #search-panel {
+                top: 10px;
+                left: 10px;
+                width: calc(100% - 20px);
+            }
+
+            #directions-panel {
+                bottom: 0;
+                top: auto;
+                right: 0;
+                width: 100%;
+                border-radius: 20px 20px 0 0;
+                max-height: 50%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loader">
+        <div class="spinner"></div>
+    </div>
+
+    <header>
+        <a href="index.html" class="logo">
+            <span class="logo-icon">📍</span>
+            <span>National Pin</span>
+        </a>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="index.html#about">About</a></li>
+        </ul>
+    </header>
+
+    <div id="main-container">
+        <div id="search-panel">
+            <div style="position: relative;">
+                <div class="input-group">
+                    <label>Starting Point</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">🔵</span>
+                        <input type="text" id="input-from" placeholder="My Location" />
+                    </div>
+                </div>
+                <div class="input-group" style="margin-top: 10px;">
+                    <label>Destination</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">🚩</span>
+                        <input type="text" id="input-to" placeholder="NK-PIN, National PIN or Address" />
+                    </div>
+                </div>
+                <button class="swap-btn" onclick="swapLocations()">⇅</button>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-start" style="flex: 1;" onclick="startNavigation('driving')">🚗 Drive</button>
+                <button class="btn-start" style="flex: 1; background: #10b981;" onclick="startNavigation('walking')">🚶
+                    Walk</button>
+            </div>
+        </div>
+
+        <div id="directions-panel">
+            <div class="route-header">
+                <div class="route-summary">
+                    <div class="summary-item">
+                        <div id="info-distance" class="summary-value">--</div>
+                        <div class="summary-label">DISTANCE</div>
+                    </div>
+                    <div class="summary-item">
+                        <div id="info-time" class="summary-value">--</div>
+                        <div class="summary-label">TIME</div>
+                    </div>
+                </div>
+            </div>
+            <div id="instruction-list"></div>
+            <div class="nav-controls">
+                <button id="stop-btn" class="btn-start" onclick="stopNavigation()">Stop Navigation</button>
+            </div>
+        </div>
+
+        <div id="map"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    <script src="dictionary.js"></script>
+    <script>
+        // --- Technical Logic Constants ---
+        const NK_PIN_GRID = [
+            ['F', 'C', '9', '8'],
+            ['J', '3', '2', '7'],
+            ['K', '4', '5', '6'],
+            ['L', 'M', 'P', 'T']
+        ];
+
+        const CHAR_VALUE_MAP = {
+            'F': 0, 'C': 1, '9': 2, '8': 3,
+            'J': 4, '3': 5, '2': 6, '7': 7,
+            'K': 8, '4': 9, '5': 10, '6': 11,
+            'L': 12, 'M': 13, 'P': 14, 'T': 15
+        };
+
+        const NK_PIN_SYNONYMS = {
+            'KUTTA': ['DOGG', 'NAAI', 'SHWAN', 'KU2TTA', 'PUPPY'],
+            'PANDI': ['SUAR', 'PIGG', 'VARAHA'],
+            'BOCES': ['SCHOOL', 'CAMPUS'],
+            'MESSY': ['UNTIDY', 'DIRTY']
+        };
+
+        const SYNONYM_TO_BASE = {};
+        for (const [base, synonyms] of Object.entries(NK_PIN_SYNONYMS)) {
+            synonyms.forEach(syn => { SYNONYM_TO_BASE[syn.toUpperCase()] = base; });
+        }
+
+        // --- Core Functions ---
+
+        function normalizeNKPinWord(word) {
+            if (!word) return "";
+            let upper = word.toUpperCase();
+            let stripped = upper.replace(/[2-9]/g, '');
+            return SYNONYM_TO_BASE[stripped] || SYNONYM_TO_BASE[upper] || stripped;
+        }
+
+        function decodeBase16Block(block) {
+            let value = 0;
+            for (let i = 0; i < block.length; i++) {
+                const char = block[i];
+                if (!(char in CHAR_VALUE_MAP)) throw new Error(`Invalid char ${char}`);
+                value = value * 16 + CHAR_VALUE_MAP[char];
+            }
+            return value;
+        }
+
+        function getLatLngByDigipin(vDigiPin) {
+            vDigiPin = vDigiPin.replaceAll('-', '');
+            if (vDigiPin.length != 10) return null;
+
+            let minLat = 2.50, maxLat = 38.50, minLng = 63.50, maxLng = 99.50;
+
+            for (let i = 0; i < 10; i++) {
+                const char = vDigiPin.charAt(i);
+                let ri = -1, ci = -1;
+                for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) if (NK_PIN_GRID[r][c] == char) { ri = r; ci = c; }
+
+                if (ri === -1) return null;
+
+                let latDiv = (maxLat - minLat) / 4;
+                let lngDiv = (maxLng - minLng) / 4;
+
+                let lat1 = maxLat - (latDiv * (ri + 1));
+                let lat2 = maxLat - (latDiv * (ri));
+                let lng1 = minLng + (lngDiv * (ci));
+                let lng2 = minLng + (lngDiv * (ci + 1));
+
+                minLat = lat1; maxLat = lat2; minLng = lng1; maxLng = lng2;
+            }
+            return { lat: (maxLat + minLat) / 2, lng: (maxLng + minLng) / 2 };
+        }
+
+        function decodeNKPin(nkpin) {
+            const parts = nkpin.split('-');
+            if (parts.length !== 3) {
+                // Check if it's numeric only (DIGIPIN)
+                if (nkpin.replace(/-/g, '').length === 10) return getLatLngByDigipin(nkpin);
+                return null;
+            }
+
+            const aaa = parts[0];
+            const w1 = normalizeNKPinWord(parts[1]);
+            const w2 = normalizeNKPinWord(parts[2]);
+
+            const i1 = NK_PIN_LIST1.indexOf(w1);
+            const i2 = NK_PIN_LIST2.indexOf(w2);
+
+            if (i1 === -1 || i2 === -1) return null;
+
+            // In our system, BBB is 3 chars base16, CCCC is 4 chars base16
+            // We need to encode the indices back to base16 blocks to use the official digipin decoder
+            function enc16(val, len) {
+                const chars = ['F', 'C', '9', '8', 'J', '3', '2', '7', 'K', '4', '5', '6', 'L', 'M', 'P', 'T'];
+                let res = '';
+                for (let i = 0; i < len; i++) { res = chars[val % 16] + res; val = Math.floor(val / 16); }
+                return res;
+            }
+
+            const bbb = enc16(i1, 3);
+            const cccc = enc16(i2, 4);
+            return getLatLngByDigipin(aaa + bbb + cccc);
+        }
+
+        // --- Map & UI Logic ---
+
+        const map = L.map('map', { zoomControl: false }).setView([20.5937, 78.9629], 5);
+        L.tileLayer('https://{s}.tile.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        let routingControl = null;
+        let startMarker = null;
+        let endMarker = null;
+        let userLocation = null;
+
+        // Auto-detect location
+        function initLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    map.setView([userLocation.lat, userLocation.lng], 13);
+                    L.circleMarker([userLocation.lat, userLocation.lng], {
+                        radius: 10, fillColor: "#2563eb", color: "#fff", weight: 3, opacity: 1, fillOpacity: 1
+                    }).addTo(map).bindPopup("Your Location").openPopup();
+                });
+            }
+        }
+        initLocation();
+
+        function showLoader(show) {
+            document.getElementById('loader').style.display = show ? 'flex' : 'none';
+        }
+
+        function swapLocations() {
+            const f = document.getElementById('input-from');
+            const t = document.getElementById('input-to');
+            const temp = f.value;
+            f.value = t.value;
+            t.value = temp;
+        }
+
+        async function resolveInput(text, isStart = false) {
+            if (!text.trim()) {
+                if (isStart && userLocation) return userLocation;
+                return null;
+            }
+
+            // Check if coordinates
+            if (text.includes(',')) {
+                const parts = text.split(',').map(p => parseFloat(p.trim()));
+                if (!isNaN(parts[0]) && !isNaN(parts[1])) return { lat: parts[0], lng: parts[1] };
+            }
+
+            // Check if NK-PIN or DIGIPIN
+            const decoded = decodeNKPin(text.toUpperCase());
+            if (decoded) return decoded;
+
+            // Fallback: Nominatim Geocoding
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(text)}&limit=1`);
+                const data = await res.json();
+                if (data.length > 0) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+            } catch (e) { console.error(e); }
+
+            return null;
+        }
+
+        async function startNavigation(mode) {
+            showLoader(true);
+            const fromText = document.getElementById('input-from').value;
+            const toText = document.getElementById('input-to').value;
+
+            const startCoords = await resolveInput(fromText, true);
+            const destCoords = await resolveInput(toText);
+
+            if (!startCoords || !destCoords) {
+                showLoader(false);
+                alert("Could not resolve locations. Please check your input.");
+                return;
+            }
+
+            if (routingControl) map.removeControl(routingControl);
+            if (startMarker) map.removeLayer(startMarker);
+            if (endMarker) map.removeLayer(endMarker);
+
+            routingControl = L.Routing.control({
+                waypoints: [L.latLng(startCoords.lat, startCoords.lng), L.latLng(destCoords.lat, destCoords.lng)],
+                router: L.Routing.osrmv1({
+                    serviceUrl: 'https://router.project-osrm.org/trip/v1/' + (mode === 'walking' ? 'foot' : 'driving'),
+                    profile: mode === 'walking' ? 'foot' : 'driving'
+                }),
+                createMarker: function (i, wp) {
+                    const marker = L.marker(wp.latLng, {
+                        draggable: false,
+                        icon: L.divIcon({
+                            className: 'custom-div-icon',
+                            html: `<div style="background:${i == 0 ? '#2563eb' : '#ef4444'}; width:12px; height:12px; border-radius:50%; border:2px solid white; box-shadow:0 0 5px rgba(0,0,0,0.3);"></div>`,
+                            iconSize: [12, 12], iconAnchor: [6, 6]
+                        })
+                    });
+                    if (i === 0) startMarker = marker; else endMarker = marker;
+                    return marker;
+                },
+                lineOptions: { styles: [{ color: mode === 'walking' ? '#10b981' : '#2563eb', opacity: 0.7, weight: 6 }] },
+                fitSelectedRoutes: true,
+                showAlternatives: false,
+                addWaypoints: false
+            }).addTo(map);
+
+            routingControl.on('routesfound', function (e) {
+                showLoader(false);
+                const route = e.routes[0];
+                document.getElementById('info-distance').innerText = (route.summary.totalDistance / 1000).toFixed(1) + ' km';
+                document.getElementById('info-time').innerText = Math.round(route.summary.totalTime / 60) + ' min';
+
+                const list = document.getElementById('instruction-list');
+                list.innerHTML = '';
+                route.instructions.forEach(instr => {
+                    const row = document.createElement('div');
+                    row.className = 'instruction-item';
+                    row.innerHTML = `
+                        <div class="instr-icon">${getIcon(instr.type)}</div>
+                        <div class="instr-text">${instr.text}</div>
+                        <div class="instr-dist">${Math.round(instr.distance)}m</div>
+                    `;
+                    list.appendChild(row);
+                });
+
+                document.getElementById('search-panel').style.display = 'none';
+                document.getElementById('directions-panel').style.display = 'block';
+            });
+
+            routingControl.on('routingerror', () => { showLoader(false); alert("No route found between these points."); });
+        }
+
+        function getIcon(type) {
+            const map = {
+                'Straight': '↑', 'Left': '←', 'Right': '→', 'SlightLeft': '↖',
+                'SlightRight': '↗', 'SharpLeft': '↸', 'SharpRight': '↹',
+                'Uturn': '⟳', 'Head': '⬆️', 'DestinationReached': '🏁'
+            };
+            return map[type] || '•';
+        }
+
+        // Handle incoming parameters
+        window.onload = () => {
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('to')) {
+                document.getElementById('input-to').value = params.get('to');
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(() => {
+                        // Wait a bit for location to be available before auto-starting
+                        setTimeout(() => startNavigation('driving'), 500);
+                    });
+                }
+            }
+        };
+
+        function stopNavigation() {
+            if (routingControl) map.removeControl(routingControl);
+            if (startMarker) map.removeLayer(startMarker);
+            if (endMarker) map.removeLayer(endMarker);
+            routingControl = null;
+            document.getElementById('directions-panel').style.display = 'none';
+            document.getElementById('search-panel').style.display = 'flex';
+        }
+    </script>
+</body>
+
+</html>

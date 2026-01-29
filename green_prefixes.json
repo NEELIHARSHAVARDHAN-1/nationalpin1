@@ -1,0 +1,49 @@
+{
+    "metadata": {
+        "version": "1.0",
+        "total_cities": 5
+    },
+    "cities": {
+        "Hyderabad": {
+            "green": "422",
+            "coverage": 54.5,
+            "confidence": "LOW",
+            "alternatives": [
+                "425",
+                "427"
+            ]
+        },
+        "Delhi": {
+            "green": "39J",
+            "coverage": 63.6,
+            "confidence": "MEDIUM",
+            "alternatives": [
+                "3C7"
+            ]
+        },
+        "Mumbai": {
+            "green": "4FK",
+            "coverage": 72.7,
+            "confidence": "MEDIUM",
+            "alternatives": [
+                "4FL"
+            ]
+        },
+        "Bangalore": {
+            "green": "4P3",
+            "coverage": 63.6,
+            "confidence": "MEDIUM",
+            "alternatives": [
+                "4PJ"
+            ]
+        },
+        "Chennai": {
+            "green": "4T3",
+            "coverage": 72.7,
+            "confidence": "MEDIUM",
+            "alternatives": [
+                "4TC"
+            ]
+        }
+    }
+}
